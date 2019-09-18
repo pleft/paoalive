@@ -1,0 +1,213 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0/dist/Chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+            integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <style>
+        body {
+            background-color: #fafafa;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-weight: 400;
+        }
+
+        #header {
+            border-bottom: 5px solid #37474F;
+            color: #37474F;
+            margin-bottom: 1.5rem;
+            padding: 1rem 0;
+        }
+
+        #backers-tag {
+            font-weight: inherit !important;
+            border-radius: 0px !important;
+        }
+
+        #revenue-tag {
+            font-weight: inherit !important;
+            border-radius: 0px !important;
+        }
+
+        .card {
+            border: 0rem;
+            border-radius: 0rem;
+        }
+
+        .card-header {
+            background-color: #37474F;
+            border-radius: 0 !important;
+            color: white;
+            margin-bottom: 0;
+            padding: 1rem;
+        }
+
+        .card-block {
+            border: 1px solid #cccccc;
+        }
+
+        .shadow {
+            box-shadow: 0 6px 10px 0 rgba(0, 0, 0, 0.14),
+            0 1px 18px 0 rgba(0, 0, 0, 0.12),
+            0 3px 5px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        #pao-alive-chart {
+            width: 99%;
+        }
+    </style>
+</head>
+
+<body>
+
+<body>
+<div class="container">
+    <h2 id="header">
+        <strong>PAO Alive</strong>
+        <small class="text-muted">2019-2020</small>
+    </h2>
+    <div class="row m-b-1">
+        <div class="col">
+            <div class="card shadow">
+                <h4 class="card-header">
+                    <div>Total: <span class="tag" id="revenue-tag"></span></div>
+                    <div>Backers: <span class="tag" id="backers-tag"></span></div>
+                </h4>
+                <div class="card-block">
+                    <div id="pao-alive-chart">
+                        <div class="d-flex justify-content-center">
+                            <div id="spinner" class="spinner-grow text-success" style="width: 5rem; height: 5rem;"></div>
+                        </div>
+                        <canvas id="myChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- row -->
+</div> <!-- container -->
+</body>
+<script>
+    window.chartColors = {
+        red: 'rgb(255, 99, 132)',
+        orange: 'rgb(255, 159, 64)',
+        yellow: 'rgb(255, 205, 86)',
+        green: 'rgb(75, 192, 86)',
+        blue: 'rgb(54, 162, 235)',
+        purple: 'rgb(153, 102, 255)',
+        grey: 'rgb(201, 203, 207)'
+    };
+    const url = 'https://cms.paoalive.gr/api/transactions/getListed?page=1&itemsPerPage=2000000&sortKey=created&sortType=DESC';
+    $.getJSON(url, function (data) {
+        // console.log(data);
+        var totalRevenue = data.items.map(item => item.amount)
+            .reduce((p, n) => p + n)
+            .toLocaleString('el-GR', {
+                style: 'currency',
+                currency: 'EUR',
+            });
+        var totalBackers = data.totalItems.toLocaleString('el-GR');
+        var dateItems = data.items.map(e => {
+            return {
+                t: moment(new Date(e.created).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                }), 'DD-MMM-YYYY').valueOf(),
+                y: e.amount
+            };
+        }).reduce((previous, current) => {
+            const found = previous.find(a => a.t - current.t === 0);
+            if (!found) {
+                previous.push({
+                    t: current.t,
+                    y: current.y
+                });
+            } else {
+                found.y += current.y;
+            }
+            return previous;
+        }, []);
+        var ctx = document.getElementById('myChart').getContext('2d');
+        var color = Chart.helpers.color;
+        var cfg = {
+            type: 'bar',
+            data: {
+                datasets: [{
+                    label: 'Daily amount',
+                    backgroundColor: color(window.chartColors.green).alpha(0.5).rgbString(),
+                    borderColor: window.chartColors.green,
+                    data: dateItems,
+                    type: 'bar',
+                    pointRadius: 0,
+                    fill: true,
+                    lineTension: 0,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                scales: {
+                    xAxes: [{
+                        type: 'time',
+                        time: {
+                            displayFormats: {
+                                day: 'DD/MM/YY'
+                            },
+                            unit: 'day'
+                        },
+                        ticks: {
+                            stepSize: 0,
+                        },
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Date'
+                        }
+                    }],
+                    yAxes: [{
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Amount (€)'
+                        }
+                    }]
+                },
+                tooltips: {
+                    intersect: false,
+                    mode: 'index',
+                    callbacks: {
+                        label: function (tooltipItem, myData) {
+                            return Number(tooltipItem.value).toLocaleString('el-GR', {
+                                style: 'currency',
+                                currency: 'EUR',
+                            });
+                        },
+                        title: function (tooltipItem, myData) {
+                            return new Date(tooltipItem[0].label).toLocaleDateString('el-GR');
+                        }
+                    }
+                }
+            }
+        };
+        var chart = new Chart(ctx, cfg);
+        $("#backers-tag").html(totalBackers);
+        $("#revenue-tag").html(totalRevenue);
+        $("#spinner").removeClass('spinner-grow text-success');
+        $("#spinner").css('height', '');
+    });
+</script>
+</body>
+
+</html>
