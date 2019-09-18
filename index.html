@@ -135,10 +135,12 @@
             if (!found) {
                 previous.push({
                     t: current.t,
-                    y: current.y
+                    y: current.y,
+                    z: 1
                 });
             } else {
                 found.y += current.y;
+                found.z++;
             }
             return previous;
         }, []);
@@ -189,10 +191,14 @@
                     mode: 'index',
                     callbacks: {
                         label: function (tooltipItem, myData) {
-                            return Number(tooltipItem.value).toLocaleString('el-GR', {
+                            const dailyAmount = Number(tooltipItem.value).toLocaleString('el-GR', {
                                 style: 'currency',
                                 currency: 'EUR',
                             });
+
+                            const dailyBackers = myData.datasets[0].data.find(d => d.t === new Date(tooltipItem.label).getTime()).z;
+
+                            return " Amount: " + dailyAmount + " / Backers: " + dailyBackers;
                         },
                         title: function (tooltipItem, myData) {
                             return new Date(tooltipItem[0].label).toLocaleDateString('el-GR');
